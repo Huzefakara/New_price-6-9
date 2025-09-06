@@ -1,15 +1,30 @@
-# Price Comparison Tool
+# 💰 Smart Price Comparison Tool
 
-A web application that allows users to upload a CSV file with product information and scrape prices from competitor websites for comparison. This project is built with [Next.js](https://nextjs.org) and optimized for Vercel deployment.
+> **Advanced web scraping solution for competitive price monitoring and analysis**
 
-## Features
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.2-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://typescriptlang.org/)
+[![Vercel](https://img.shields.io/badge/Vercel-Ready-000000?style=for-the-badge&logo=vercel)](https://vercel.com/)
 
-- CSV upload and parsing for product data
-- Web scraping functionality to extract prices from competitor websites
-- Price comparison and visualization
-- Responsive UI with a dashboard for comparison results
-- Export functionality for comparison results
-- Optimized for Vercel deployment
+A powerful web application that allows users to upload CSV files with product information and automatically scrape prices from competitor websites for comprehensive price comparison. Built with Next.js 15.5.2 and optimized for Vercel deployment with advanced anti-bot protection.
+
+## 🚀 **Features**
+
+### **Core Functionality**
+- 📊 **CSV Upload & Processing** - Bulk product analysis with Papa Parse
+- 🔍 **Smart Web Scraping** - 70+ price selectors for global e-commerce sites
+- 🌐 **International Support** - Thai, Spanish, German, French price detection
+- 🛡️ **Anti-Bot Protection** - Realistic browser headers and sequential processing
+- 📱 **Real-time Progress** - Live scraping status and progress tracking
+- 📈 **Export Results** - Download comparison data as CSV
+
+### **Advanced Capabilities**
+- 🔧 **Debug Mode** - Test individual URLs and troubleshoot scraping issues
+- ⚡ **Sequential Processing** - Reliable scraping without triggering rate limits
+- 🎯 **Platform-Specific** - Optimized for Amazon, Currys, Shopify, WooCommerce, Magento
+- 🌏 **Global Reach** - Support for diverse international e-commerce patterns
+- 💱 **Currency Support** - USD, GBP, EUR, THB, and more
+- 🚀 **Vercel Optimized** - Serverless functions with proper timeouts and memory allocation
 
 ## Getting Started
 
