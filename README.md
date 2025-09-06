@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Price Comparison Tool
+
+A web application that allows users to upload a CSV file with product information and scrape prices from competitor websites for comparison. This project is built with [Next.js](https://nextjs.org) and optimized for Vercel deployment.
+
+## Features
+
+- CSV upload and parsing for product data
+- Web scraping functionality to extract prices from competitor websites
+- Price comparison and visualization
+- Responsive UI with a dashboard for comparison results
+- Export functionality for comparison results
+- Optimized for Vercel deployment
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18.x or later
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+### Development
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Prepare a CSV file with the following columns:
+   - `name`: Product name
+   - `url`: URL of the competitor's product page
 
-## Learn More
+2. Upload the CSV file using the interface
 
-To learn more about Next.js, take a look at the following resources:
+3. Select products and click "Scrape Prices" to fetch current prices
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. View the comparison results in the table
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Sample CSV
+
+A sample CSV file is included in the `/public` directory for testing purposes.
+
+## Technical Details
+
+- Built with Next.js and TypeScript
+- Uses the App Router for routing
+- Tailwind CSS for styling
+- PapaParse for CSV parsing
+- Cheerio for web scraping
+- Vercel Edge Runtime for serverless functions
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This application is optimized for deployment on Vercel:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install -g vercel
+vercel
+```
+
+Or connect your GitHub repository to Vercel for automatic deployments.
+
+## Limitations
+
+- Web scraping is limited to 10 products at a time to avoid timeouts
+- Some websites may block scraping attempts
+- The scraping logic uses generic selectors and may not work for all websites
+
+## License
+
+MIT

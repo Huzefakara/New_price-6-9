@@ -1,102 +1,202 @@
-import Image from "next/image";
+'use client';
+
+import PriceComparison from './components/PriceComparison';
+import DebugScraper from './components/DebugScraper';
+import { useState } from 'react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [showDebug, setShowDebug] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <div>
+      {/* Navigation */}
+      <nav className="nav">
+        <div className="container">
+          <div className="nav-container">
+            <a href="#" className="nav-brand">💰 PriceTracker</a>
+            <ul className="nav-links">
+              <li><a href="#" className="nav-link">Home</a></li>
+              <li><a href="#" className="nav-link">Features</a></li>
+              <li><a href="#" className="nav-link">About</a></li>
+              <li><a href="#" className="nav-link">Contact</a></li>
+            </ul>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="hero animate-fadeIn">
+        <div className="container">
+          <h1>🎯 Smart Price Comparison Tool</h1>
+          <p>
+            Upload your product CSV and automatically scrape competitor prices
+            to make informed business decisions with real-time pricing data.
+          </p>
+          <div className="flex justify-center gap-md" style={{ marginTop: 'var(--space-lg)' }}>
+            <a href="#price-tool" className="btn btn-primary">Start Comparing</a>
+            <a href="/sample.csv" download className="btn btn-outline">📥 Download Sample</a>
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="btn btn-secondary"
+            >
+              🔧 Debug Mode
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Debug Section */}
+      {showDebug && (
+        <div style={{ background: 'var(--gray-50)', padding: 'var(--space-xl) 0' }}>
+          <DebugScraper />
+        </div>
+      )}
+
+      {/* Main Price Comparison Tool */}
+      <div id="price-tool">
+        <PriceComparison />
+      </div>
+
+      {/* Features Section */}
+      <section className="container">
+        <div className="text-center" style={{ marginBottom: 'var(--space-xl)' }}>
+          <h2>🚀 Powerful Features</h2>
+          <p className="text-gray-600">Everything you need for comprehensive price analysis</p>
+        </div>
+
+        <div className="grid grid-3">
+          <div className="card hover-lift animate-slideIn">
+            <div className="card-header">
+              <h3 className="card-title text-primary">🔍 Smart Scraping</h3>
+            </div>
+            <p className="text-gray-600">
+              Advanced web scraping with 20+ price selectors and fallback
+              regex patterns to capture prices from any e-commerce site.
+            </p>
+          </div>
+
+          <div className="card hover-lift animate-slideIn">
+            <div className="card-header">
+              <h3 className="card-title text-secondary">📊 Batch Processing</h3>
+            </div>
+            <p className="text-gray-600">
+              Process up to 5 products simultaneously with smart timeout
+              handling and error recovery for reliable results.
+            </p>
+          </div>
+
+          <div className="card hover-lift animate-slideIn">
+            <div className="card-header">
+              <h3 className="card-title text-success">📈 Export & Analysis</h3>
+            </div>
+            <p className="text-gray-600">
+              Export comparison results to CSV format with detailed
+              pricing data for further analysis and reporting.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="container">
+        <div className="card bg-gray-50">
+          <div className="text-center" style={{ marginBottom: 'var(--space-lg)' }}>
+            <h2>⚡ How It Works</h2>
+            <p className="text-gray-600">Simple 4-step process to get competitor pricing</p>
+          </div>
+
+          <div className="grid grid-4">
+            <div className="text-center">
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: 'var(--primary)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: 'white',
+                margin: '0 auto var(--space-md)'
+              }}>1</div>
+              <h4>📤 Upload CSV</h4>
+              <p className="text-gray-600">Upload your product list with competitor URLs</p>
+            </div>
+
+            <div className="text-center">
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: 'var(--secondary)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: 'white',
+                margin: '0 auto var(--space-md)'
+              }}>2</div>
+              <h4>✅ Select Products</h4>
+              <p className="text-gray-600">Choose which products to scrape prices for</p>
+            </div>
+
+            <div className="text-center">
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: 'var(--accent)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: 'white',
+                margin: '0 auto var(--space-md)'
+              }}>3</div>
+              <h4>🔍 Auto Scrape</h4>
+              <p className="text-gray-600">Our system automatically extracts prices</p>
+            </div>
+
+            <div className="text-center">
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: 'var(--success)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                color: 'white',
+                margin: '0 auto var(--space-md)'
+              }}>4</div>
+              <h4>📊 Export Results</h4>
+              <p className="text-gray-600">Download detailed comparison report</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ background: 'var(--gray-800)', color: 'var(--white)', padding: 'var(--space-xl) 0', marginTop: 'var(--space-2xl)' }}>
+        <div className="container">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 style={{ color: 'var(--white)', marginBottom: 'var(--space-sm)' }}>💰 PriceTracker</h3>
+              <p style={{ color: 'var(--gray-400)', margin: 0 }}>Smart price comparison for competitive advantage</p>
+            </div>
+            <div className="flex gap-lg">
+              <a href="#" style={{ color: 'var(--gray-400)', textDecoration: 'none' }}>Privacy</a>
+              <a href="#" style={{ color: 'var(--gray-400)', textDecoration: 'none' }}>Terms</a>
+              <a href="#" style={{ color: 'var(--gray-400)', textDecoration: 'none' }}>Support</a>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-lg)', paddingTop: 'var(--space-lg)', borderTop: '1px solid var(--gray-600)' }}>
+            <p style={{ color: 'var(--gray-400)', margin: 0 }}>
+              © 2024 PriceTracker. Built with advanced scraping technology.
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   );
