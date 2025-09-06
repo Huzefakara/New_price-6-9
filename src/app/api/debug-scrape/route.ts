@@ -143,8 +143,12 @@ export async function POST(request: NextRequest) {
                         html: element.html()?.substring(0, 200) // Limit HTML length
                     });
 
-                    if (!foundPrice && text && /[\$£€¥₹฿]|\d+[.,]\d+|\d+/.test(text)) {
-                        foundPrice = text;
+                    // Enhanced price validation
+                    if (!foundPrice && text && (/[\$£€¥₹฿]|\d+[.,]\d+|\d+/.test(text) || /baht|บาท|thb|pounds?|euros?|dollars?/i.test(text))) {
+                        const numericValue = parseFloat(text.replace(/[^\d.,]/g, '').replace(',', '.'));
+                        if (numericValue >= 0.01 && numericValue <= 100000) {
+                            foundPrice = text;
+                        }
                     }
                 });
             }
