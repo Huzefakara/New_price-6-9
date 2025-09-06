@@ -18,9 +18,9 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
   try {
     console.log(`Attempting to scrape: ${url}`);
 
-    // Use fetch with timeout (reduced for Vercel reliability)
+    // Use fetch with timeout (increased back to 15 seconds for better success rate)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // Reduced to 12 seconds for Vercel
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased back to 15 seconds
 
     const response = await fetch(url, {
       signal: controller.signal,
@@ -109,7 +109,13 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
 
       // More generic patterns for international sites
       '[class*="baht"]', '[class*="thb"]', '[class*="currency"]',
-      '.product-price-wrap', '.product-pricing', '.item-pricing'
+      '.product-price-wrap', '.product-pricing', '.item-pricing',
+
+      // Additional John Lewis and UK retailer patterns
+      '.now-price', '.was-price', '.price-now', '.price-current-value',
+      '.c-product-price', '.pdp-product-price', '.product-price-current',
+      '[data-test="price"]', '[data-testid="price-display"]',
+      '.price-range', '.price-value-current'
     ];
 
     for (const selector of priceSelectors) {
@@ -139,8 +145,8 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
             // Remove extra whitespace and clean up
             price = price.replace(/\s+/g, ' ').trim();
 
-            // Check if it looks like a price (contains currency symbols, numbers, or Thai characters)
-            if (/[\$£€¥₹฿บาท]|\d+[.,]\d+|\d+/.test(price)) {
+            // Check if it looks like a price (contains currency symbols, numbers, or common price patterns)
+            if (/[\$\£\€\¥\₹\฿]|\d+[.,]\d+|\d+/.test(price) || /baht|บาท|thb/i.test(price)) {
               console.log(`Found potential price: "${price}" using selector: ${selector}`);
               return { price };
             }
@@ -155,16 +161,22 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
 
     // Enhanced price patterns to catch more formats
     const pricePatterns = [
-      // Currency symbols with numbers
-      /[\$£€¥₹฿]\s*\d+(?:[.,]\d{2,3})?/g,
-      /\d+(?:[.,]\d{2,3})?\s*[\$£€¥₹฿]/g,
-      // Thai Baht specific
-      /\b\d+(?:[.,]\d{2})?\s*บาท/g,
-      /บาท\s*\d+(?:[.,]\d{2})?/g,
+      // Currency symbols with numbers (improved patterns)
+      /[\$£€¥₹฿]\s*\d+(?:[.,]\d{1,3})?/g,
+      /\d+(?:[.,]\d{1,3})?\s*[\$£€¥₹฿]/g,
+      // Thai Baht text patterns
+      /\d+(?:[.,]\d{1,3})?\s*(?:baht|บาท|thb)/gi,
+      /(?:baht|บาท|thb)\s*\d+(?:[.,]\d{1,3})?/gi,
+      // Euro patterns
+      /\d+(?:[.,]\d{1,3})?\s*€/g,
+      /€\s*\d+(?:[.,]\d{1,3})?/g,
+      // Pound patterns  
+      /£\s*\d+(?:[.,]\d{1,3})?/g,
+      /\d+(?:[.,]\d{1,3})?\s*£/g,
       // Numbers with decimal points (common price format)
       /\b\d{1,6}[.,]\d{2}\b/g,
       // Large whole numbers (for expensive items)
-      /\b\d{3,6}\b/g,
+      /\b\d{2,6}\b/g,
       // Comma-separated thousands
       /\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b/g
     ];
@@ -208,12 +220,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`Received request to scrape ${products.length} products`);
 
-    // Limit batch size for Vercel reliability (max 10 products per request)
-    if (products.length > 10) {
+    // Limit batch size for Vercel reliability (max 15 products per request)
+    if (products.length > 15) {
       return NextResponse.json(
         {
-          error: 'Too many products. Please limit to 10 products per batch for optimal performance.',
-          maxAllowed: 10,
+          error: 'Too many products. Please limit to 15 products per batch for optimal performance.',
+          maxAllowed: 15,
           received: products.length
         },
         { status: 400 }
