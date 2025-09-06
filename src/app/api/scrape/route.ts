@@ -45,20 +45,20 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
       // === MOST COMMON PATTERNS FIRST ===
       '.price', '.product-price', '.current-price', '.price-current', '.price-value',
       '.price-now', '.sale-price', '.offer-price', '.final-price', '.selling-price',
-      
+
       // === UK RETAILER SPECIFIC PATTERNS ===
       '.now-price', '.was-price', '.c-product-price', '.pdp-product-price',
       '.price-current-value', '.product-price-current', '.price-range', '.price-value-current',
-      
+
       // === ATTRIBUTE-BASED SELECTORS ===
       '[data-price]', '[itemprop="price"]', '[data-testid*="price"]', '[class*="price"]',
       '[data-component="price"]', '[data-testid="large-price"]', '[data-testid="current-price"]',
       '[data-test="price"]', '[data-testid="price-display"]', '[aria-label*="price"]',
-      
+
       // === AMAZON SPECIFIC ===
       '#priceblock_ourprice', '#priceblock_dealprice', '.a-price .a-offscreen',
       '.a-price-whole', '.a-price .a-price-whole', '.a-price-current',
-      
+
       // === GENERIC PATTERNS ===
       '.cost', '.amount', '.money', '.currency', '.value', '.pricing',
       '.product_price', '.product-price-value', '.price-display', '.price-wrapper',
@@ -69,25 +69,25 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
 
     for (const selector of priceSelectors) {
       const elements = $(selector);
-      
+
       if (elements.length > 0) {
         console.log(`Found ${elements.length} elements for selector: ${selector}`);
-        
+
         for (let i = 0; i < elements.length; i++) {
           const element = elements.eq(i);
-          
+
           // Try multiple extraction methods
           let priceText = element.text().trim();
           if (!priceText) priceText = element.attr('content') || '';
           if (!priceText) priceText = element.attr('data-price') || '';
           if (!priceText) priceText = element.attr('value') || '';
           if (!priceText) priceText = element.attr('title') || '';
-          
+
           if (priceText) {
             priceText = priceText.replace(/\s+/g, ' ').trim();
-            
+
             // Enhanced price validation
-            if (this.isValidPrice(priceText)) {
+            if (isValidPrice(priceText)) {
               console.log(`✅ FOUND PRICE: "${priceText}" using selector: ${selector}`);
               foundPrice = priceText;
               break;
@@ -121,7 +121,7 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
           const numericValue = parseFloat(match.replace(/[^\d.,]/g, '').replace(',', '.'));
           return numericValue >= 1 && numericValue <= 50000;
         });
-        
+
         if (validMatches.length > 0) {
           console.log(`✅ FOUND PRICE via pattern: "${validMatches[0]}"`);
           return { price: validMatches[0].trim() };
@@ -132,11 +132,11 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
     // STRATEGY 3: Look for JSON-LD structured data
     console.log('STRATEGY 3: JSON-LD structured data search...');
     const jsonLdScripts = $('script[type="application/ld+json"]');
-    
+
     jsonLdScripts.each((_, script) => {
       try {
         const jsonData = JSON.parse($(script).html() || '');
-        const price = this.extractPriceFromJsonLd(jsonData);
+        const price = extractPriceFromJsonLd(jsonData);
         if (price) {
           console.log(`✅ FOUND PRICE in JSON-LD: "${price}"`);
           foundPrice = price;
@@ -162,7 +162,7 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
       const metaElement = $(metaSelector);
       if (metaElement.length > 0) {
         const priceContent = metaElement.attr('content');
-        if (priceContent && this.isValidPrice(priceContent)) {
+        if (priceContent && isValidPrice(priceContent)) {
           console.log(`✅ FOUND PRICE in meta tag: "${priceContent}"`);
           return { price: priceContent };
         }
@@ -182,16 +182,16 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
 // Helper function to validate if text contains a valid price
 function isValidPrice(text: string): boolean {
   if (!text || text.length > 50) return false;
-  
+
   // Check for currency symbols or price patterns
-  const hasValidPattern = /[\$£€¥₹฿]|\d+[.,]\d+|\d+/.test(text) || 
-                         /baht|บาท|thb|pounds?|euros?|dollars?/i.test(text);
-  
+  const hasValidPattern = /[\$£€¥₹฿]|\d+[.,]\d+|\d+/.test(text) ||
+    /baht|บาท|thb|pounds?|euros?|dollars?/i.test(text);
+
   if (!hasValidPattern) return false;
-  
+
   // Extract numeric value for validation
   const numericValue = parseFloat(text.replace(/[^\d.,]/g, '').replace(',', '.'));
-  
+
   // Must be a reasonable price range
   return numericValue >= 0.01 && numericValue <= 100000;
 }
@@ -199,7 +199,7 @@ function isValidPrice(text: string): boolean {
 // Helper function to extract price from JSON-LD structured data
 function extractPriceFromJsonLd(data: any): string | null {
   if (!data) return null;
-  
+
   // Handle arrays
   if (Array.isArray(data)) {
     for (const item of data) {
@@ -208,7 +208,7 @@ function extractPriceFromJsonLd(data: any): string | null {
     }
     return null;
   }
-  
+
   // Look for price in various JSON-LD structures
   if (data.offers) {
     const offers = Array.isArray(data.offers) ? data.offers : [data.offers];
@@ -217,9 +217,9 @@ function extractPriceFromJsonLd(data: any): string | null {
       if (offer.priceSpecification?.price) return String(offer.priceSpecification.price);
     }
   }
-  
+
   if (data.price) return String(data.price);
   if (data.priceRange) return String(data.priceRange);
-  
+
   return null;
 }
