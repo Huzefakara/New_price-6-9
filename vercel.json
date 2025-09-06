@@ -4,17 +4,13 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "regions": [
-    "iad1"
-  ],
+  "regions": ["iad1"],
   "functions": {
     "src/app/api/scrape/route.ts": {
-      "runtime": "nodejs20.x",
       "memory": 1024,
       "maxDuration": 300
     },
     "src/app/api/debug-scrape/route.ts": {
-      "runtime": "nodejs20.x",
       "memory": 1024,
       "maxDuration": 60
     }
