@@ -1,6 +1,7 @@
 async function scrapePrice(url: string): Promise<{ price: string | null; error?: string }> {
   try {
     console.log(`Attempting to scrape: ${url}`);
+    logScrapingAttempt(url, 'INITIAL', true, 'Starting scrape attempt');
 
     // Use fetch with timeout (increased back to 15 seconds for better success rate)
     const controller = new AbortController();
@@ -31,11 +32,13 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
     if (!response.ok) {
       const error = `HTTP ${response.status}: ${response.statusText}`;
       console.error(`Failed to fetch ${url}: ${error}`);
+      logScrapingAttempt(url, 'FETCH', false, `HTTP ${response.status}`);
       return { price: null, error };
     }
 
     const html = await response.text();
     console.log(`Successfully fetched HTML for ${url}, length: ${html.length}`);
+    logScrapingAttempt(url, 'FETCH', true, `HTML length: ${html.length}`);
 
     const $ = cheerio.load(html);
 
@@ -89,6 +92,7 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
             // Enhanced price validation
             if (isValidPrice(priceText)) {
               console.log(`✅ FOUND PRICE: "${priceText}" using selector: ${selector}`);
+              logScrapingAttempt(url, 'STRATEGY-1-SELECTORS', true, `Found with: ${selector}`);
               foundPrice = priceText;
               break;
             }
@@ -124,6 +128,7 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
 
         if (validMatches.length > 0) {
           console.log(`✅ FOUND PRICE via pattern: "${validMatches[0]}"`);
+          logScrapingAttempt(url, 'STRATEGY-2-REGEX', true, `Pattern match: ${validMatches[0]}`);
           return { price: validMatches[0].trim() };
         }
       }
@@ -139,6 +144,7 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
         const price = extractPriceFromJsonLd(jsonData);
         if (price) {
           console.log(`✅ FOUND PRICE in JSON-LD: "${price}"`);
+          logScrapingAttempt(url, 'STRATEGY-3-JSONLD', true, `JSON-LD price: ${price}`);
           foundPrice = price;
           return false; // Break the loop
         }
@@ -164,17 +170,20 @@ async function scrapePrice(url: string): Promise<{ price: string | null; error?:
         const priceContent = metaElement.attr('content');
         if (priceContent && isValidPrice(priceContent)) {
           console.log(`✅ FOUND PRICE in meta tag: "${priceContent}"`);
+          logScrapingAttempt(url, 'STRATEGY-4-METATAG', true, `Meta tag: ${metaSelector}`);
           return { price: priceContent };
         }
       }
     }
 
     console.log(`❌ No price found for ${url} after trying all strategies`);
+    logScrapingAttempt(url, 'ALL-STRATEGIES', false, 'No price found with any strategy');
     return { price: null, error: 'No price found with any detection strategy' };
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Error scraping ${url}:`, errorMessage);
+    logScrapingAttempt(url, 'ERROR', false, errorMessage);
     return { price: null, error: errorMessage };
   }
 }
@@ -222,4 +231,91 @@ function extractPriceFromJsonLd(data: any): string | null {
   if (data.priceRange) return String(data.priceRange);
 
   return null;
+}
+
+// Add required imports and Vercel configuration
+import { NextRequest, NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
+
+// Vercel configuration (as per specification)
+export const runtime = 'nodejs';
+export const maxDuration = 300;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Helper function to log detailed scraping attempts for debugging
+function logScrapingAttempt(url: string, strategy: string, success: boolean, details?: string) {
+  const timestamp = new Date().toISOString();
+  const status = success ? '✅ SUCCESS' : '❌ FAILED';
+  console.log(`[${timestamp}] ${status} - ${url} - Strategy: ${strategy}${details ? ` - ${details}` : ''}`);
+}
+
+// Enhanced scrapePrice function with better debugging
+
+// Main POST endpoint for batch scraping
+export async function POST(request: NextRequest) {
+  try {
+    const { products } = await request.json() as { products: Array<{ name: string; url: string; }> };
+
+    if (!products || !Array.isArray(products)) {
+      return NextResponse.json({ error: 'Invalid products array' }, { status: 400 });
+    }
+
+    console.log(`Starting batch scrape for ${products.length} products`);
+
+    // Limit batch size to prevent timeouts (max 10 products as per Vercel limits)
+    const limitedProducts = products.slice(0, 10);
+    const results = [];
+
+    // Sequential processing with 2-second delays (as per memory for anti-bot protection)
+    for (let i = 0; i < limitedProducts.length; i++) {
+      const product = limitedProducts[i];
+      console.log(`Scraping product ${i + 1}/${limitedProducts.length}: ${product.name}`);
+
+      try {
+        const result = await scrapePrice(product.url);
+        results.push({
+          name: product.name,
+          url: product.url,
+          price: result.price,
+          error: result.error
+        });
+
+        console.log(`Completed ${product.name}: ${result.price ? 'SUCCESS' : 'FAILED'}`);
+      } catch (error) {
+        console.error(`Failed to scrape ${product.name}:`, error);
+        results.push({
+          name: product.name,
+          url: product.url,
+          price: null,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+
+      // Add 2-second delay between requests for anti-bot protection (except last item)
+      if (i < limitedProducts.length - 1) {
+        console.log('Waiting 2 seconds before next request...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    const successCount = results.filter(r => r.price).length;
+    console.log(`Batch scraping completed: ${successCount}/${results.length} successful`);
+
+    return NextResponse.json({
+      products: results,
+      summary: {
+        total: results.length,
+        successful: successCount,
+        failed: results.length - successCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Batch scraping failed:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: 'Failed to process scraping request'
+    }, { status: 500 });
+  }
 }
