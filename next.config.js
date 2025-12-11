@@ -3,6 +3,9 @@ const nextConfig = {
     // Ensure static exports work properly
     output: 'standalone',
 
+    // Explicit empty Turbopack config to silence migration warning; we already force webpack in build script.
+    turbopack: {},
+
     // ESLint configuration for production builds
     eslint: {
         // Only run ESLint on these directories during production builds
