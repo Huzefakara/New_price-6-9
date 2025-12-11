@@ -6,17 +6,8 @@ const nextConfig = {
     // Explicit empty Turbopack config to silence migration warning; we already force webpack in build script.
     turbopack: {},
 
-    // ESLint configuration for production builds
-    eslint: {
-        // Only run ESLint on these directories during production builds
-        dirs: ['src'],
-        // Allow production builds to complete even if there are ESLint errors
-        ignoreDuringBuilds: true,
-    },
-
-    // TypeScript configuration
+    // TypeScript configuration (keep build unblocked in CI)
     typescript: {
-        // Allow production builds to complete even if there are type errors
         ignoreBuildErrors: true,
     },
 
@@ -48,17 +39,6 @@ const nextConfig = {
         unoptimized: false,
     },
 
-    // Webpack configuration for better bundling
-    webpack: (config) => {
-        // Ensure proper handling of Node.js modules
-        config.resolve.fallback = {
-            ...config.resolve.fallback,
-            fs: false,
-            net: false,
-            tls: false,
-        };
-        return config;
-    },
 };
 
 module.exports = nextConfig;
