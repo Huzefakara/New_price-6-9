@@ -17,15 +17,20 @@ export async function POST(request: NextRequest) {
 
         console.log(`DEBUG: Testing URL: ${url}`);
 
-        // Fetch the page
+        // Fetch the page with enhanced anti-bot headers
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => {
+            console.log(`DEBUG: Request timeout after 15 seconds for ${url}`);
+            controller.abort();
+        }, 15000);
+
+        console.log(`DEBUG: Starting fetch request for ${url}`);
 
         const response = await fetch(url, {
             signal: controller.signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Cache-Control': 'no-cache',
@@ -38,15 +43,23 @@ export async function POST(request: NextRequest) {
                 'DNT': '1',
                 'Connection': 'keep-alive',
                 'Referer': 'https://www.google.com/',
+                // Additional headers for better anti-bot evasion
+                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
             },
         });
 
         clearTimeout(timeoutId);
 
+        console.log(`DEBUG: Fetch completed. Status: ${response.status} ${response.statusText}`);
+
         if (!response.ok) {
+            console.log(`DEBUG: HTTP error - ${response.status}: ${response.statusText}`);
             return NextResponse.json({
                 error: `HTTP ${response.status}: ${response.statusText}`,
-                status: response.status
+                status: response.status,
+                details: `Failed to fetch ${url}. This might be due to bot protection or network issues.`
             });
         }
 
@@ -54,12 +67,24 @@ export async function POST(request: NextRequest) {
         const $ = cheerio.load(html);
 
         console.log(`DEBUG: HTML length: ${html.length}`);
+        console.log(`DEBUG: Page title: ${$('title').text()}`);
+        console.log(`DEBUG: Found ${$('*').length} total elements`);
 
-        // Enhanced price selectors for global e-commerce sites
+        // Check if page indicates bot blocking
+        const pageText = $('body').text().toLowerCase();
+        if (pageText.includes('bot') || pageText.includes('blocked') || pageText.includes('access denied') || pageText.includes('cloudflare')) {
+            console.log('DEBUG: Page content suggests bot detection/blocking');
+        }
+
+        // Enhanced price selectors for global e-commerce sites + John Lewis specific
         const priceSelectors = [
+            // John Lewis specific selectors (prioritized)
+            '.price', '.c-product-price', '.product-price', '.current-price', '.price-current',
+            '[data-testid="price"]', '[data-test="price"]', '.price-value', '.price-now',
+            '.c-price', '.o-product-price', '.m-product-price', '.pdp-price',
+
             // General price selectors
-            '.price', '.product-price', '.offer-price', '.current-price', '.price-value',
-            '.price-current', '.price-now', '.sale-price', '.regular-price', '.final-price',
+            '.offer-price', '.sale-price', '.regular-price', '.final-price',
             '.selling-price', '.list-price', '.special-price', '.discount-price',
 
             // Common e-commerce patterns
@@ -196,9 +221,29 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('DEBUG endpoint error:', error);
+
+        // Enhanced error handling
+        let errorMessage = 'Unknown error';
+        let errorDetails = 'Debug endpoint failed';
+
+        if (error instanceof Error) {
+            errorMessage = error.message;
+
+            // Specific error handling for common issues
+            if (error.name === 'AbortError' || errorMessage.includes('aborted')) {
+                errorDetails = 'Request was aborted (likely due to timeout). This often happens with sites that have strong anti-bot protection like John Lewis.';
+            } else if (errorMessage.includes('fetch')) {
+                errorDetails = 'Network error occurred while fetching the page. This could be due to connectivity issues or the site blocking the request.';
+            } else if (errorMessage.includes('timeout')) {
+                errorDetails = 'Request timed out after 15 seconds. The website may be slow to respond or blocking the request.';
+            }
+        }
+
         return NextResponse.json({
-            error: error instanceof Error ? error.message : 'Unknown error',
-            details: 'Debug endpoint failed'
+            error: errorMessage,
+            details: errorDetails,
+            url: url || 'Unknown URL',
+            timestamp: new Date().toISOString()
         }, { status: 500 });
     }
 }

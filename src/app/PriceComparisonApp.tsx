@@ -26,6 +26,14 @@ export default function PriceComparisonApp() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  // Add state for progress tracking
+  const [scrapingProgress, setScrapingProgress] = useState<{
+    current: number;
+    total: number;
+    currentProduct: string;
+    batch?: number;
+    totalBatches?: number;
+  }>({ current: 0, total: 0, currentProduct: '' });
 
   const handleDataParsed = (data: CSVRow[]) => {
     console.log('Raw CSV data:', data);
@@ -59,6 +67,14 @@ export default function PriceComparisonApp() {
     console.log('Starting scrape request for products:', productsToScrape);
     setIsLoading(true);
     setError('');
+    // Initialize progress tracking
+    setScrapingProgress({
+      current: 0,
+      total: productsToScrape.length,
+      currentProduct: '',
+      batch: 1,
+      totalBatches: Math.ceil(productsToScrape.length / 15) // Based on our batch size of 15
+    });
 
     try {
       console.log('Sending request to /api/scrape');
@@ -96,11 +112,23 @@ export default function PriceComparisonApp() {
           return product;
         });
       });
+
+      // Show completion message
+      setScrapingProgress({
+        current: productsToScrape.length,
+        total: productsToScrape.length,
+        currentProduct: 'All products processed!',
+        batch: Math.ceil(productsToScrape.length / 15),
+        totalBatches: Math.ceil(productsToScrape.length / 15)
+      });
     } catch (err) {
       console.error('Scrape request failed:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
-      setIsLoading(false);
+      // Keep loading state for a bit to show completion
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 2000);
     }
   };
 
@@ -111,6 +139,32 @@ export default function PriceComparisonApp() {
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded-lg">
           {error}
+        </div>
+      )}
+
+      {/* Show progress during scraping */}
+      {isLoading && scrapingProgress.total > 0 && (
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-medium text-blue-800">Scraping Progress</h3>
+            <span className="text-sm text-blue-600">
+              {scrapingProgress.current} / {scrapingProgress.total} products
+              {scrapingProgress.batch && scrapingProgress.totalBatches && (
+                <> · Batch {scrapingProgress.batch} / {scrapingProgress.totalBatches}</>
+              )}
+            </span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${(scrapingProgress.current / scrapingProgress.total) * 100}%` }}
+            ></div>
+          </div>
+          {scrapingProgress.currentProduct && (
+            <p className="mt-2 text-sm text-blue-700">
+              Current: {scrapingProgress.currentProduct}
+            </p>
+          )}
         </div>
       )}
 

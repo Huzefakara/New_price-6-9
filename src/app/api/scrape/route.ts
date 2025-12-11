@@ -263,39 +263,51 @@ export async function POST(request: NextRequest) {
 
     console.log(`Starting batch scrape for ${products.length} products`);
 
-    // Limit batch size to prevent timeouts (max 10 products as per Vercel limits)
-    const limitedProducts = products.slice(0, 10);
+    // Process all products in batches to handle larger selections
+    const BATCH_SIZE = 15; // Process 15 products per batch based on Vercel limits and memory
     const results = [];
 
-    // Sequential processing with 2-second delays (as per memory for anti-bot protection)
-    for (let i = 0; i < limitedProducts.length; i++) {
-      const product = limitedProducts[i];
-      console.log(`Scraping product ${i + 1}/${limitedProducts.length}: ${product.name}`);
+    // Process products in batches
+    for (let i = 0; i < products.length; i += BATCH_SIZE) {
+      const batch = products.slice(i, i + BATCH_SIZE);
+      console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(products.length / BATCH_SIZE)} (${batch.length} products)`);
 
-      try {
-        const result = await scrapePrice(product.url);
-        results.push({
-          name: product.name,
-          url: product.url,
-          price: result.price,
-          error: result.error
-        });
+      // Process each product in the current batch
+      for (let j = 0; j < batch.length; j++) {
+        const product = batch[j];
+        console.log(`Scraping product ${j + 1}/${batch.length} in batch (Overall: ${i + j + 1}/${products.length}): ${product.name}`);
 
-        console.log(`Completed ${product.name}: ${result.price ? 'SUCCESS' : 'FAILED'}`);
-      } catch (error) {
-        console.error(`Failed to scrape ${product.name}:`, error);
-        results.push({
-          name: product.name,
-          url: product.url,
-          price: null,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        try {
+          const result = await scrapePrice(product.url);
+          results.push({
+            name: product.name,
+            url: product.url,
+            price: result.price,
+            error: result.error
+          });
+
+          console.log(`Completed ${product.name}: ${result.price ? 'SUCCESS' : 'FAILED'}`);
+        } catch (error) {
+          console.error(`Failed to scrape ${product.name}:`, error);
+          results.push({
+            name: product.name,
+            url: product.url,
+            price: null,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+
+        // Add delay between requests for anti-bot protection (except for last item in batch)
+        if (j < batch.length - 1) {
+          console.log('Waiting 2 seconds before next request...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
 
-      // Add 2-second delay between requests for anti-bot protection (except last item)
-      if (i < limitedProducts.length - 1) {
-        console.log('Waiting 2 seconds before next request...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Add longer delay between batches to reduce server load
+      if (i + BATCH_SIZE < products.length) {
+        console.log(`Waiting 5 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
 
@@ -307,7 +319,8 @@ export async function POST(request: NextRequest) {
       summary: {
         total: results.length,
         successful: successCount,
-        failed: results.length - successCount
+        failed: results.length - successCount,
+        batchSize: BATCH_SIZE
       }
     });
 
