@@ -41,6 +41,35 @@ export default function PriceComparisonApp() {
       // Show which product is being processed
       setScrapingProgress(prev => ({ ...prev, currentProduct: product?.name ?? '' }))
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3d20a0d2-d40c-4330-b22a-411e64753cac', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H1',
+          location: 'PriceComparisonApp.tsx:handleScrapeRequest:loop',
+          message: 'Starting product scrape',
+          data: { index, total: productsToScrape.length, productName: product?.name },
+          timestamp: Date.now()
+        })
+      }).catch(() => {})
+      fetch('/api/agent-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H1',
+          location: 'PriceComparisonApp.tsx:handleScrapeRequest:loop',
+          message: 'Starting product scrape',
+          data: { index, total: productsToScrape.length, productName: product?.name },
+          timestamp: Date.now()
+        })
+      }).catch(() => {})
+      // #endregion
+
       try {
         const response = await fetch('/api/scrape', {
           method: 'POST',
@@ -58,6 +87,35 @@ export default function PriceComparisonApp() {
             errorMessage = errorData.error || errorMessage
           } catch {}
           setError(errorMessage)
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/3d20a0d2-d40c-4330-b22a-411e64753cac', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              location: 'PriceComparisonApp.tsx:handleScrapeRequest:error',
+              message: 'Scrape response not ok',
+              data: { status: response.status, productName: product?.name },
+              timestamp: Date.now()
+            })
+          }).catch(() => {})
+          fetch('/api/agent-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              location: 'PriceComparisonApp.tsx:handleScrapeRequest:error',
+              message: 'Scrape response not ok',
+              data: { status: response.status, productName: product?.name },
+              timestamp: Date.now()
+            })
+          }).catch(() => {})
+          // #endregion
         } else {
           const data = await response.json()
           // Update this product with the scraped price
@@ -70,10 +128,68 @@ export default function PriceComparisonApp() {
               return product
             })
           })
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/3d20a0d2-d40c-4330-b22a-411e64753cac', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H3',
+              location: 'PriceComparisonApp.tsx:handleScrapeRequest:success',
+              message: 'Scrape success',
+              data: { productName: product?.name, price: data.products?.[0]?.price ?? null },
+              timestamp: Date.now()
+            })
+          }).catch(() => {})
+          fetch('/api/agent-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H3',
+              location: 'PriceComparisonApp.tsx:handleScrapeRequest:success',
+              message: 'Scrape success',
+              data: { productName: product?.name, price: data.products?.[0]?.price ?? null },
+              timestamp: Date.now()
+            })
+          }).catch(() => {})
+          // #endregion
         }
       } catch (err) {
         // Network or unexpected error; do not stop scanning
         setError(err instanceof Error ? err.message : 'An unknown error occurred during scraping')
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3d20a0d2-d40c-4330-b22a-411e64753cac', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'H4',
+            location: 'PriceComparisonApp.tsx:handleScrapeRequest:exception',
+            message: 'Scrape threw',
+            data: { productName: product?.name, error: err instanceof Error ? err.message : 'unknown' },
+            timestamp: Date.now()
+          })
+        }).catch(() => {})
+        fetch('/api/agent-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'H4',
+            location: 'PriceComparisonApp.tsx:handleScrapeRequest:exception',
+            message: 'Scrape threw',
+            data: { productName: product?.name, error: err instanceof Error ? err.message : 'unknown' },
+            timestamp: Date.now()
+          })
+        }).catch(() => {})
+        // #endregion
       }
 
       // Increment progress by 1 product
