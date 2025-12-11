@@ -20,7 +20,7 @@ export default function PriceComparisonApp() {
     setError('')
   }
 
-  // Scrape selected products sequentially with optional pauses so we cover everything
+  // Scrape selected products in batches (now 20 at a time) with optional pauses so we cover everything
   const handleScrapeRequest = async (productsToScrape: Product[]) => {
     if (!productsToScrape || productsToScrape.length === 0) {
       setError('Please select at least one product to scrape')
@@ -31,15 +31,17 @@ export default function PriceComparisonApp() {
     setError('')
     setScrapingProgress({ current: 0, total: productsToScrape.length, currentProduct: '' })
 
-    const pauseEvery = 15 // after this many requests, take a breather
+    const batchSize = 20 // process 20 at a time
+    const pauseEvery = 20 // after this many requests, take a breather
     const pauseMs = 1500 // pause duration to ease rate limits
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-    for (let index = 0; index < productsToScrape.length; index++) {
-      const product = productsToScrape[index]
+    for (let start = 0; start < productsToScrape.length; start += batchSize) {
+      const batch = productsToScrape.slice(start, start + batchSize)
+      const batchLabel = `${batch[0]?.name ?? ''} (+${Math.max(batch.length - 1, 0)} more)`
 
       // Show which product is being processed
-      setScrapingProgress(prev => ({ ...prev, currentProduct: product?.name ?? '' }))
+      setScrapingProgress(prev => ({ ...prev, currentProduct: batchLabel }))
 
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/3d20a0d2-d40c-4330-b22a-411e64753cac', {
@@ -50,8 +52,8 @@ export default function PriceComparisonApp() {
           runId: 'pre-fix',
           hypothesisId: 'H1',
           location: 'PriceComparisonApp.tsx:handleScrapeRequest:loop',
-          message: 'Starting product scrape',
-          data: { index, total: productsToScrape.length, productName: product?.name },
+          message: 'Starting batch scrape',
+          data: { start, batchSize: batch.length, total: productsToScrape.length },
           timestamp: Date.now()
         })
       }).catch(() => {})
@@ -63,8 +65,8 @@ export default function PriceComparisonApp() {
           runId: 'pre-fix',
           hypothesisId: 'H1',
           location: 'PriceComparisonApp.tsx:handleScrapeRequest:loop',
-          message: 'Starting product scrape',
-          data: { index, total: productsToScrape.length, productName: product?.name },
+          message: 'Starting batch scrape',
+          data: { start, batchSize: batch.length, total: productsToScrape.length },
           timestamp: Date.now()
         })
       }).catch(() => {})
@@ -76,12 +78,12 @@ export default function PriceComparisonApp() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ products: [product] }),
+          body: JSON.stringify({ products: batch }),
         })
 
         if (!response.ok) {
           // Don't stop on errors; collect and continue
-          let errorMessage = 'Failed to scrape price for current product'
+          let errorMessage = 'Failed to scrape prices for current batch'
           try {
             const errorData = await response.json()
             errorMessage = errorData.error || errorMessage
@@ -139,7 +141,7 @@ export default function PriceComparisonApp() {
               hypothesisId: 'H3',
               location: 'PriceComparisonApp.tsx:handleScrapeRequest:success',
               message: 'Scrape success',
-              data: { productName: product?.name, price: data.products?.[0]?.price ?? null },
+              data: { batchSize: batch.length },
               timestamp: Date.now()
             })
           }).catch(() => {})
@@ -152,7 +154,7 @@ export default function PriceComparisonApp() {
               hypothesisId: 'H3',
               location: 'PriceComparisonApp.tsx:handleScrapeRequest:success',
               message: 'Scrape success',
-              data: { productName: product?.name, price: data.products?.[0]?.price ?? null },
+              data: { batchSize: batch.length },
               timestamp: Date.now()
             })
           }).catch(() => {})
@@ -172,7 +174,7 @@ export default function PriceComparisonApp() {
             hypothesisId: 'H4',
             location: 'PriceComparisonApp.tsx:handleScrapeRequest:exception',
             message: 'Scrape threw',
-            data: { productName: product?.name, error: err instanceof Error ? err.message : 'unknown' },
+            data: { batchSize: batch.length, error: err instanceof Error ? err.message : 'unknown' },
             timestamp: Date.now()
           })
         }).catch(() => {})
@@ -185,7 +187,7 @@ export default function PriceComparisonApp() {
             hypothesisId: 'H4',
             location: 'PriceComparisonApp.tsx:handleScrapeRequest:exception',
             message: 'Scrape threw',
-            data: { productName: product?.name, error: err instanceof Error ? err.message : 'unknown' },
+            data: { batchSize: batch.length, error: err instanceof Error ? err.message : 'unknown' },
             timestamp: Date.now()
           })
         }).catch(() => {})
@@ -195,11 +197,11 @@ export default function PriceComparisonApp() {
       // Increment progress by 1 product
       setScrapingProgress(prev => ({
         ...prev,
-        current: Math.min(prev.current + 1, prev.total),
+        current: Math.min(prev.current + batch.length, prev.total),
       }))
 
       // Take a short break periodically but keep going automatically
-      if ((index + 1) % pauseEvery === 0 && index + 1 < productsToScrape.length) {
+      if ((start + batch.length) % pauseEvery === 0 && start + batchSize < productsToScrape.length) {
         await sleep(pauseMs)
       }
     }
